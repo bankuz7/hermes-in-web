@@ -4,15 +4,15 @@ const SETTINGS_KEY = "hermes_in_web_settings_v1";
 const CONVERSATIONS_KEY = "hermes_in_web_conversations_v1";
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  endpointBaseUrl: "",
+  endpointBaseUrl: "https://integrate.api.nvidia.com",
   chatCompletionsPath: "/v1/chat/completions",
   apiKey: "",
   authMode: "bearer",
-  model: "gpt-4o-mini",
+  model: "z-ai/glm-5.1",
   systemPrompt:
     "You are Hermes, a helpful AI agent running fully in the browser. Keep answers concise and practical.",
-  temperature: 0.4,
-  maxTokens: 800,
+  temperature: 1,
+  maxTokens: 16384,
   stream: true,
 };
 
