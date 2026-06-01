@@ -1,5 +1,10 @@
 import type { AppSettings, ChatMessage } from "./types";
 
+export type LlmModelInfo = {
+  id: string;
+  owned_by: string;
+};
+
 export type LlmSendOptions = {
   signal?: AbortSignal;
   onToken?: (text: string) => void;
@@ -127,4 +132,32 @@ export async function sendChat(
   }
 
   return acc;
+}
+
+export async function fetchModels(settings: AppSettings): Promise<LlmModelInfo[]> {
+  const base = normalizeBaseUrl(settings.endpointBaseUrl);
+  const modelsPath = "/v1/models"; // Standard OpenAI-compatible path
+  const url = `${base}${modelsPath}`;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...buildAuthHeaders(settings),
+  };
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${res.statusText}${text ? ` — ${text}` : ""}`);
+  }
+
+  const data = (await res.json()) as { data: LlmModelInfo[] };
+  if (!Array.isArray(data?.data)) {
+    throw new Error("Unexpected response shape from /v1/models");
+  }
+
+  return data.data;
 }

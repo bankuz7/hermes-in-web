@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppSettings, ChatMessage, Conversation } from "@/lib/types";
 import { DEFAULT_SETTINGS, loadConversations, loadSettings, saveConversations, saveSettings } from "@/lib/storage";
-import { sendChat } from "@/lib/llm";
+import { fetchModels, sendChat } from "@/lib/llm";
 import { cn, uid } from "@/lib/utils";
 
 function now() {
@@ -35,6 +35,7 @@ export default function HermesApp() {
   const [input, setInput] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>("");
+  const [models, setModels] = useState<{ id: string; owned_by: string }[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -50,6 +51,20 @@ export default function HermesApp() {
       saveConversations([c]);
     }
   }, []);
+
+  useEffect(() => {
+    if (!settings.endpointBaseUrl || !settings.apiKey) return;
+    const ac = new AbortController();
+    fetchModels(settings)
+      .then((list) => {
+        setModels(list);
+      })
+      .catch((err) => {
+        console.warn("Model fetch failed:", err.message);
+        setModels([]);
+      });
+    return () => ac.abort();
+  }, [settings.endpointBaseUrl, settings.apiKey]);
 
   const active = useMemo(() => convos.find((c) => c.id === activeId) ?? null, [convos, activeId]);
 
@@ -260,14 +275,30 @@ export default function HermesApp() {
 
                   <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                     <div>
-                      <label className="text-xs text-zinc-600">Model</label>
-                      <input
-                        value={settings.model}
-                        onChange={(e) => persist({ ...settings, model: e.target.value })}
-                        placeholder="model-name"
-                        className="mt-1 h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
-                      />
-                    </div>
+                                        <label className="text-xs text-zinc-600">Model</label>
+                                        <select
+                                          value={settings.model}
+                                          onChange={(e) => persist({ ...settings, model: e.target.value })}
+                                          className="mt-1 h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
+                                        >
+                                          {models.length > 0 ? (
+                                            models.map((m) => (
+                                              <option key={m.id} value={m.id}>
+                                                {m.id} ({m.owned_by})
+                                              </option>
+                                            ))
+                                          ) : (
+                                            <option value="">No models fetched</option>
+                                          )}
+                                        </select>
+                                        <div className="mt-1 text-xs text-zinc-500">
+                                          {settings.endpointBaseUrl && settings.apiKey ? (
+                                            <span className="text-green-600">✓ Models auto-fetched</span>
+                                          ) : (
+                                            <span className="text-amber-600">Enter endpoint + API key to fetch models</span>
+                                          )}
+                                        </div>
+                                      </div>
                     <div>
                       <label className="text-xs text-zinc-600">Chat path</label>
                       <input
