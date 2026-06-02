@@ -8,12 +8,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   chatCompletionsPath: "/v1/chat/completions",
   apiKey: "",
   authMode: "bearer",
-  model: "z-ai/glm-5.1",
+  model: "minimaxai/minimax-m2.7",
   systemPrompt:
     "You are Hermes, a helpful AI agent running fully in the browser. Keep answers concise and practical.",
   temperature: 1,
-  maxTokens: 16384,
-  stream: true,
+  maxTokens: 8192,
+  stream: false,
 };
 
 export function loadSettings(): AppSettings {
