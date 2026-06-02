@@ -2,9 +2,9 @@
 
 A **browser-only** Hermes AI agent UI built with **React (Next.js App Router)**.
 
-- No backend/server required.
-- Connects to any **OpenAI-compatible** Chat Completions endpoint (provider #4 / custom endpoint).
+- Connects to **NVIDIA NIM** via a Vercel serverless proxy (no CORS issues).
 - Stores settings + chats in your browser (`localStorage`).
+- Deploys automatically to Vercel on every push to `main`.
 
 ## Run locally
 
@@ -19,13 +19,24 @@ Open http://localhost:3000
 
 In the app **Settings** panel:
 
-- **Endpoint Base URL**: e.g. `https://YOUR-ENDPOINT`
-- **Chat path**: default `/v1/chat/completions`
-- **Auth mode**: `Bearer` or `x-api-key`
-- **API key**: stored locally in your browser
-- **Model**: your model name
+- **API key** — your NVIDIA NIM key (`nvapi-...`), stored locally in browser
+- **Model** — select from 32 popular models or type any NIM model ID
+- **System prompt** — customize behavior
+- **Temperature / Max tokens / Stream** — fine-tune responses
 
-## Notes (important)
+> Endpoint and auth settings are auto-configured via the built-in Vercel proxy. No manual setup needed.
 
-- Because this is browser-only, your provider must allow **CORS**.
-- Don’t put secret API keys in GitHub. The key stays in your browser storage.
+## Architecture
+
+```
+Browser → /api/chat (Vercel, same-origin) → NVIDIA NIM /v1/chat/completions
+Browser → /api/models (Vercel, same-origin) → NVIDIA NIM /v1/models
+```
+
+The Vercel serverless proxy forwards requests to NVIDIA NIM — this bypasses CORS restrictions that would block direct browser-to-NIM communication.
+
+## Notes
+
+- Get your NVIDIA NIM API key at [build.nvidia.com](https://build.nvidia.com)
+- Your API key never leaves your browser — it is sent only to the Vercel proxy
+- Don't commit API keys to GitHub
