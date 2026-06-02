@@ -86,11 +86,6 @@ export async function sendChat(
   messages: ChatMessage[],
   opts: LlmSendOptions = {}
 ): Promise<string> {
-  const base = normalizeBaseUrl(settings.endpointBaseUrl);
-  const path = normalizePath(settings.chatCompletionsPath);
-  const url = `${base}${path}`;
-
-  if (!settings.endpointBaseUrl) throw new Error("Set Endpoint Base URL in Settings.");
   if (!settings.model) throw new Error("Set a model name in Settings.");
 
   const body = {
@@ -101,12 +96,16 @@ export async function sendChat(
     stream: settings.stream,
   };
 
+  // Always call our own proxy — this avoids CORS issues entirely.
+  // The proxy lives at same origin (localhost:3000 or vercel.app)
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...buildAuthHeaders(settings),
   };
+  if (settings.apiKey) {
+    headers["x-nim-api-key"] = settings.apiKey;
+  }
 
-  const res = await fetch(url, {
+  const res = await fetch("/api/chat", {
     method: "POST",
     headers,
     body: JSON.stringify(body),
@@ -171,19 +170,17 @@ export async function sendChat(
 }
 
 export async function fetchModels(settings: AppSettings): Promise<LlmModelInfo[]> {
-  const base = normalizeBaseUrl(settings.endpointBaseUrl);
-  const modelsPath = "/v1/models"; // Standard OpenAI-compatible path
-  const url = `${base}${modelsPath}`;
-
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...buildAuthHeaders(settings),
   };
+  if (settings.apiKey) {
+    headers["x-nim-api-key"] = settings.apiKey;
+  }
 
   try {
-    const res = await fetch(url, { method: "GET", headers });
+    // Call our own proxy at same origin — no CORS issues
+    const res = await fetch("/api/models", { method: "GET", headers });
     if (!res.ok) {
-      // 401 / 403 / CORS-blocked — fall through to hardcoded list
       return NVIDIA_NIM_MODELS;
     }
     const data = (await res.json()) as { data: LlmModelInfo[] };
@@ -192,7 +189,6 @@ export async function fetchModels(settings: AppSettings): Promise<LlmModelInfo[]
     }
     return NVIDIA_NIM_MODELS;
   } catch {
-    // Network error or CORS blocked — use hardcoded list
     return NVIDIA_NIM_MODELS;
   }
 }

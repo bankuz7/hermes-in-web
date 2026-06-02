@@ -54,7 +54,7 @@ export default function HermesApp() {
   }, []);
 
   useEffect(() => {
-    if (!settings.endpointBaseUrl || !settings.apiKey) return;
+    if (!settings.apiKey) return;
     const ac = new AbortController();
     fetchModels(settings)
       .then((list) => {
@@ -66,7 +66,7 @@ export default function HermesApp() {
         setModels([]);
       });
     return () => ac.abort();
-  }, [settings.endpointBaseUrl, settings.apiKey]);
+  }, [settings.apiKey]);
 
   const active = useMemo(() => convos.find((c) => c.id === activeId) ?? null, [convos, activeId]);
 
@@ -180,7 +180,7 @@ export default function HermesApp() {
     setBusy(false);
   }
 
-  const settingsMissing = !settings.endpointBaseUrl || !settings.model;
+  const settingsMissing = !settings.model || !settings.apiKey;
 
   return (
     <div className="min-h-[100dvh] bg-zinc-50 text-zinc-900">
@@ -243,36 +243,15 @@ export default function HermesApp() {
               <div className="rounded-2xl border border-zinc-200 p-4">
                 <div className="mb-2 text-xs font-semibold text-zinc-500">SETTINGS</div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs text-zinc-600">Endpoint Base URL</label>
+                  <label className="text-xs text-zinc-600">API key <span className="text-zinc-400">(required)</span></label>
                   <input
-                    value={settings.endpointBaseUrl}
-                    onChange={(e) => persist({ ...settings, endpointBaseUrl: e.target.value })}
-                    placeholder="https://api.your-llm.com"
+                    value={settings.apiKey}
+                    onChange={(e) => persist({ ...settings, apiKey: e.target.value })}
+                    placeholder="nvapi-..."
                     className="h-10 rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
                   />
-
-                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                    <div>
-                      <label className="text-xs text-zinc-600">Auth mode</label>
-                      <select
-                        value={settings.authMode}
-                        onChange={(e) => persist({ ...settings, authMode: e.target.value as any })}
-                        className="mt-1 h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
-                      >
-                        <option value="bearer">Bearer</option>
-                        <option value="x-api-key">x-api-key</option>
-                        <option value="none">None</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs text-zinc-600">API key</label>
-                      <input
-                        value={settings.apiKey}
-                        onChange={(e) => persist({ ...settings, apiKey: e.target.value })}
-                        placeholder="stored in your browser"
-                        className="mt-1 h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-200"
-                      />
-                    </div>
+                  <div className="text-xs text-zinc-500">
+                    Requests route through Vercel proxy (no CORS issues)
                   </div>
 
                   <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
@@ -360,8 +339,7 @@ export default function HermesApp() {
 
                   {settingsMissing ? (
                     <div className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                      Fill Endpoint Base URL + Model. Example endpoint:
-                      <div className="mt-1 font-mono">https://YOUR-ENDPOINT</div>
+                      Enter API key + select a model. Get your key from <span className="font-mono">build.nvidia.com</span>
                     </div>
                   ) : null}
                 </div>
