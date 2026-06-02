@@ -36,6 +36,7 @@ export default function HermesApp() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>("");
   const [models, setModels] = useState<{ id: string; owned_by: string }[]>([]);
+  const [modelsFromApi, setModelsFromApi] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -58,9 +59,10 @@ export default function HermesApp() {
     fetchModels(settings)
       .then((list) => {
         setModels(list);
+        // If we got 32 models, it's the hardcoded list (CORS blocked)
+        setModelsFromApi(list.length > 32);
       })
-      .catch((err) => {
-        console.warn("Model fetch failed:", err.message);
+      .catch(() => {
         setModels([]);
       });
     return () => ac.abort();
@@ -293,7 +295,11 @@ export default function HermesApp() {
                                         </select>
                                         <div className="mt-1 text-xs text-zinc-500">
                                           {settings.endpointBaseUrl && settings.apiKey ? (
-                                            <span className="text-green-600">✓ Models auto-fetched</span>
+                                            modelsFromApi ? (
+                                              <span className="text-green-600">✓ {models.length} models fetched from API</span>
+                                            ) : (
+                                              <span className="text-amber-600">⚠ {models.length} popular models shown (API blocked by CORS)</span>
+                                            )
                                           ) : (
                                             <span className="text-amber-600">Enter endpoint + API key to fetch models</span>
                                           )}

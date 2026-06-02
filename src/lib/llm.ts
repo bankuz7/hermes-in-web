@@ -5,6 +5,42 @@ export type LlmModelInfo = {
   owned_by: string;
 };
 
+/** NVIDIA NIM models — used as fallback when /v1/models is blocked by CORS */
+export const NVIDIA_NIM_MODELS: LlmModelInfo[] = [
+  { id: "minimaxai/minimax-m2.7", owned_by: "minimaxai" },
+  { id: "z-ai/glm-5.1", owned_by: "z-ai" },
+  { id: "meta/llama-3.3-70b-instruct", owned_by: "meta" },
+  { id: "meta/llama-3.1-70b-instruct", owned_by: "meta" },
+  { id: "meta/llama-3.1-8b-instruct", owned_by: "meta" },
+  { id: "mistralai/mistral-large-3-675b-instruct-2512", owned_by: "mistralai" },
+  { id: "mistralai/mistral-large-2-instruct", owned_by: "mistralai" },
+  { id: "mistralai/mistral-small-4-119b-2603", owned_by: "mistralai" },
+  { id: "nvidia/llama-3.1-nemotron-70b-instruct", owned_by: "nvidia" },
+  { id: "nvidia/llama-3.1-nemotron-nano-8b-v1", owned_by: "nvidia" },
+  { id: "nvidia/llama-3.1-nemotron-ultra-253b-v1", owned_by: "nvidia" },
+  { id: "nvidia/llama-3.3-nemotron-super-49b-v1.5", owned_by: "nvidia" },
+  { id: "nvidia/nemotron-4-340b-instruct", owned_by: "nvidia" },
+  { id: "nvidia/nemotron-nano-3-30b-a3b", owned_by: "nvidia" },
+  { id: "qwen/qwen3.5-397b-a17b", owned_by: "qwen" },
+  { id: "qwen/qwen3.5-122b-a10b", owned_by: "qwen" },
+  { id: "qwen/qwen3-next-80b-a3b-instruct", owned_by: "qwen" },
+  { id: "google/gemma-3-12b-it", owned_by: "google" },
+  { id: "google/gemma-4-31b-it", owned_by: "google" },
+  { id: "deepseek-ai/deepseek-v4-pro", owned_by: "deepseek-ai" },
+  { id: "deepseek-ai/deepseek-v4-flash", owned_by: "deepseek-ai" },
+  { id: "moonshotai/kimi-k2.6", owned_by: "moonshotai" },
+  { id: "microsoft/phi-4-multimodal-instruct", owned_by: "microsoft" },
+  { id: "microsoft/phi-4-mini-instruct", owned_by: "microsoft" },
+  { id: "mistralai/codestral-22b-instruct-v0.1", owned_by: "mistralai" },
+  { id: "mistralai/mistral-nemotron", owned_by: "mistralai" },
+  { id: "meta/llama-3.2-90b-vision-instruct", owned_by: "meta" },
+  { id: "meta/llama-4-maverick-17b-128e-instruct", owned_by: "meta" },
+  { id: "snowflake/arctic-embed-l", owned_by: "snowflake" },
+  { id: "stepfun-ai/step-3.7-flash", owned_by: "stepfun-ai" },
+  { id: "01-ai/yi-large", owned_by: "01-ai" },
+  { id: "databricks/dbrx-instruct", owned_by: "databricks" },
+];
+
 export type LlmSendOptions = {
   signal?: AbortSignal;
   onToken?: (text: string) => void;
@@ -144,20 +180,19 @@ export async function fetchModels(settings: AppSettings): Promise<LlmModelInfo[]
     ...buildAuthHeaders(settings),
   };
 
-  const res = await fetch(url, {
-    method: "GET",
-    headers,
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status} ${res.statusText}${text ? ` — ${text}` : ""}`);
+  try {
+    const res = await fetch(url, { method: "GET", headers });
+    if (!res.ok) {
+      // 401 / 403 / CORS-blocked — fall through to hardcoded list
+      return NVIDIA_NIM_MODELS;
+    }
+    const data = (await res.json()) as { data: LlmModelInfo[] };
+    if (Array.isArray(data?.data) && data.data.length > 0) {
+      return data.data;
+    }
+    return NVIDIA_NIM_MODELS;
+  } catch {
+    // Network error or CORS blocked — use hardcoded list
+    return NVIDIA_NIM_MODELS;
   }
-
-  const data = (await res.json()) as { data: LlmModelInfo[] };
-  if (!Array.isArray(data?.data)) {
-    throw new Error("Unexpected response shape from /v1/models");
-  }
-
-  return data.data;
 }
